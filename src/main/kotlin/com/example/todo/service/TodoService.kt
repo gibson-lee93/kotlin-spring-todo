@@ -46,6 +46,16 @@ class TodoService(
         }
     }
 
+    fun deleteTodo(id: Long): String {
+        val todo = getTodoById(id)
+        try {
+            todoRepository.delete(todo)
+            return "Successfully deleted"
+        } catch (e: Exception) {
+            throw APIException(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error")
+        }
+    }
+
     private fun mapToEntity(todoDto: TodoDto): Todo {
         return mapper.map(todoDto, Todo::class.java)
     }
