@@ -6,10 +6,10 @@ import javax.persistence.*
 @Table(name = "todos")
 class Todo(
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    val id: Long? = null,
+    val id: Long,
 
     @Column(nullable = false)
-    val title: String,
+    var title: String,
 
-    val description: String? = null
+    var description: String? = null
 )

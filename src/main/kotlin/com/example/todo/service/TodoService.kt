@@ -26,12 +26,24 @@ class TodoService(
         return try {
             todoRepository.findById(id).get()
         } catch(e: NoSuchElementException) {
-            throw APIException(HttpStatus.NOT_FOUND, "Not found")
+            throw APIException(HttpStatus.NOT_FOUND, "Can't find todo with Id: $id")
         }
     }
 
     fun getAllTodos(): List<Todo> {
         return todoRepository.findAll().toList()
+    }
+
+    fun updateTodo(id: Long, todoDto: TodoDto): Todo {
+        val todo = getTodoById(id)
+        todo.title = todoDto.title ?: todo.title
+        todo.description = todoDto.description ?: todo.description
+
+        return try {
+            todoRepository.save(todo)
+        } catch (e: Exception) {
+            throw APIException(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error")
+        }
     }
 
     private fun mapToEntity(todoDto: TodoDto): Todo {

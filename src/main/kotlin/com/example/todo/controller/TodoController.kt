@@ -25,4 +25,12 @@ class TodoController(private val todoService: TodoService) {
     fun getAllTodos(): List<Todo> {
         return todoService.getAllTodos()
     }
+
+    @PutMapping("/{id}")
+    fun updateTodo(
+        @PathVariable(name = "id") id: Long,
+        @RequestBody @Validated todoDto: TodoDto
+    ): Todo {
+        return todoService.updateTodo(id, todoDto)
+    }
 }
