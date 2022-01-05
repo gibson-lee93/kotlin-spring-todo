@@ -4,10 +4,7 @@ import com.example.todo.dto.TodoDto
 import com.example.todo.entity.Todo
 import com.example.todo.service.TodoService
 import org.springframework.validation.annotation.Validated
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/todos")
@@ -17,5 +14,15 @@ class TodoController(private val todoService: TodoService) {
     @PostMapping
     fun createTodo(@RequestBody @Validated todoDto: TodoDto): Todo {
         return todoService.createTodo(todoDto)
+    }
+
+    @GetMapping("/{id}")
+    fun getTodoById(@PathVariable(name = "id") id: Long): Todo {
+        return todoService.getTodoById(id)
+    }
+
+    @GetMapping
+    fun getAllTodos(): List<Todo> {
+        return todoService.getAllTodos()
     }
 }
