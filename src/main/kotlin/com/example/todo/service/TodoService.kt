@@ -14,7 +14,7 @@ class TodoService(
     private val todoRepository: TodoRepository,
     private val mapper: ModelMapper
 ) {
-    fun createTodo(todoDto: TodoDto): Todo {
+    fun create(todoDto: TodoDto): Todo {
         return try {
             todoRepository.save(mapToEntity(todoDto))
         } catch(e: MethodArgumentNotValidException) {
@@ -22,7 +22,7 @@ class TodoService(
         }
     }
 
-    fun getTodoById(id: Long): Todo {
+    fun detail(id: Long): Todo {
         return try {
             todoRepository.findById(id).get()
         } catch(e: NoSuchElementException) {
@@ -30,14 +30,13 @@ class TodoService(
         }
     }
 
-    fun getAllTodos(): List<Todo> {
+    fun list(): List<Todo> {
         return todoRepository.findAll().toList()
     }
 
-    fun updateTodo(id: Long, todoDto: TodoDto): Todo {
-        val todo = getTodoById(id)
-        todo.title = todoDto.title ?: todo.title
-        todo.description = todoDto.description ?: todo.description
+    fun update(id: Long, todoDto: TodoDto): Todo {
+        val todo = detail(id)
+        todo.updateTodo(todoDto.title, todoDto.description)
 
         return try {
             todoRepository.save(todo)
@@ -46,8 +45,8 @@ class TodoService(
         }
     }
 
-    fun deleteTodo(id: Long): String {
-        val todo = getTodoById(id)
+    fun delete(id: Long): String {
+        val todo = detail(id)
         try {
             todoRepository.delete(todo)
             return "Successfully deleted"
