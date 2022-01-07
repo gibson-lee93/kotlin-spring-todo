@@ -2,6 +2,7 @@ package com.example.todo.controller
 
 import com.example.todo.dto.TodoDto
 import com.example.todo.entity.Todo
+import com.example.todo.exception.APIException
 import com.example.todo.service.TodoService
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.ninjasquad.springmockk.MockkBean
@@ -13,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.test.web.servlet.MockMvc
 import io.mockk.every
 import org.hamcrest.CoreMatchers.containsString
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
@@ -27,39 +29,50 @@ internal class TodoControllerTest : DescribeSpec() {
 
     init {
         val mockTodo : Todo = Todo(1, "title", "description")
-        val todoDto : TodoDto = TodoDto(1, "title", "description")
-        val content : String = ObjectMapper().writeValueAsString(todoDto)
-
-        beforeEach {
-            every { todoService.create(todoDto) } returns mockTodo
-            every { todoService.detail(1) } returns mockTodo
-            every { todoService.list() } returns listOf(mockTodo)
-            every { todoService.update(1, todoDto) } returns mockTodo
-            every { todoService.delete(1) } returns "Successfully deleted"
-        }
+        val mockTodoDto : TodoDto = TodoDto(1, "title", "description")
+        val dtoContent : String = ObjectMapper().writeValueAsString(mockTodoDto)
 
         describe("Create a todo") {
-            it("responds with created todo") {
+            it("Responds with a created todo") {
+                every { todoService.create(mockTodoDto) } returns mockTodo
                 mockMvc.perform(post("/todos")
-                    .content(content)
+                    .content(dtoContent)
                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk)
 
-                todoService.create(todoDto) shouldBe mockTodo
+                todoService.create(mockTodoDto) shouldBe mockTodo
+            }
+
+            it("Responds with a bad request exception error when given invalid argument") {
+                val faultyDto : TodoDto = TodoDto(1, "ti", "description")
+                val faultyContent : String = ObjectMapper().writeValueAsString(faultyDto)
+                mockMvc.perform(post("/todos")
+                    .content(faultyContent)
+                    .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isBadRequest)
             }
         }
 
         describe("Get a todo with Id") {
-            it("responds with Todo") {
+            it("Responds with a todo") {
+                every { todoService.detail(1) } returns mockTodo
                 mockMvc.perform(get("/todos/1"))
                     .andExpect(status().isOk)
 
                 todoService.detail(1) shouldBe mockTodo
             }
+
+            it("Responds with not found exception error when a todo with given id is not found") {
+                every { todoService.detail(1) } throws APIException(HttpStatus.NOT_FOUND,
+                    "Can't find todo with Id: 1")
+                mockMvc.perform(get("/todos/1"))
+                    .andExpect(status().isNotFound)
+            }
         }
 
         describe("Get list of todo") {
-            it("responds with list of Todo") {
+            it("Responds with a list of Todo") {
+                every { todoService.list() } returns listOf(mockTodo)
                 mockMvc.perform(get("/todos"))
                     .andExpect(status().isOk)
 
@@ -68,18 +81,20 @@ internal class TodoControllerTest : DescribeSpec() {
         }
 
         describe("Update a todo with id") {
-            it("responds with updated todo") {
+            it("Responds with a updated todo") {
+                every { todoService.update(1, mockTodoDto) } returns mockTodo
                 mockMvc.perform(put("/todos/1")
-                    .content(content)
+                    .content(dtoContent)
                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk)
 
-                todoService.update(1, todoDto) shouldBe mockTodo
+                todoService.update(1, mockTodoDto) shouldBe mockTodo
             }
         }
 
-        describe("Delete todo with id") {
-            it("responds with string when successfully deleted") {
+        describe("Delete a todo with id") {
+            it("Responds with a string when successfully deleted") {
+                every { todoService.delete(1) } returns "Successfully deleted"
                 mockMvc.perform(delete("/todos/1"))
                     .andExpect(status().isOk)
                     .andExpect(content().string(containsString("Successfully")))
