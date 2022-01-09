@@ -55,7 +55,7 @@ class TodoService(
         }
     }
 
-    private fun mapToEntity(todoDto: TodoDto): Todo {
+    fun mapToEntity(todoDto: TodoDto): Todo {
         return mapper.map(todoDto, Todo::class.java)
     }
 }
