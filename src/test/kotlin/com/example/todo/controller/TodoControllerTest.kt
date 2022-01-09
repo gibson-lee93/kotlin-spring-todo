@@ -25,22 +25,22 @@ internal class TodoControllerTest : DescribeSpec() {
     lateinit var mockMvc: MockMvc
 
     @MockkBean
-    lateinit var todoService: TodoService
+    lateinit var service: TodoService
 
     init {
-        val mockTodo : Todo = Todo(1, "title", "description")
-        val mockTodoDto : TodoDto = TodoDto(1, "title", "description")
-        val dtoContent : String = ObjectMapper().writeValueAsString(mockTodoDto)
+        val todo : Todo = Todo(1, "title", "description")
+        val todoDto : TodoDto = TodoDto(1, "title", "description")
+        val dtoContent : String = ObjectMapper().writeValueAsString(todoDto)
 
         describe("Create a todo") {
             it("Responds with a created todo") {
-                every { todoService.create(mockTodoDto) } returns mockTodo
+                every { service.create(todoDto) } returns todo
                 mockMvc.perform(post("/todos")
                     .content(dtoContent)
                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk)
 
-                todoService.create(mockTodoDto) shouldBe mockTodo
+                service.create(todoDto) shouldBe todo
             }
 
             it("Responds with a bad request exception error when given invalid argument") {
@@ -55,15 +55,16 @@ internal class TodoControllerTest : DescribeSpec() {
 
         describe("Get a todo with Id") {
             it("Responds with a todo") {
-                every { todoService.detail(1) } returns mockTodo
+                every { service.detail(1) } returns todo
                 mockMvc.perform(get("/todos/1"))
                     .andExpect(status().isOk)
 
-                todoService.detail(1) shouldBe mockTodo
+                service.detail(1) shouldBe todo
             }
 
             it("Responds with not found exception error when a todo with given id is not found") {
-                every { todoService.detail(1) } throws APIException(HttpStatus.NOT_FOUND,
+                every { service.detail(1) } throws APIException(
+                    HttpStatus.NOT_FOUND,
                     "Can't find todo with Id: 1")
                 mockMvc.perform(get("/todos/1"))
                     .andExpect(status().isNotFound)
@@ -72,29 +73,29 @@ internal class TodoControllerTest : DescribeSpec() {
 
         describe("Get list of todo") {
             it("Responds with a list of Todo") {
-                every { todoService.list() } returns listOf(mockTodo)
+                every { service.list() } returns listOf(todo)
                 mockMvc.perform(get("/todos"))
                     .andExpect(status().isOk)
 
-                todoService.list() shouldContain mockTodo
+                service.list() shouldContain todo
             }
         }
 
         describe("Update a todo with id") {
             it("Responds with a updated todo") {
-                every { todoService.update(1, mockTodoDto) } returns mockTodo
+                every { service.update(1, todoDto) } returns todo
                 mockMvc.perform(put("/todos/1")
                     .content(dtoContent)
                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk)
 
-                todoService.update(1, mockTodoDto) shouldBe mockTodo
+                service.update(1, todoDto) shouldBe todo
             }
         }
 
         describe("Delete a todo with id") {
             it("Responds with a string when successfully deleted") {
-                every { todoService.delete(1) } returns "Successfully deleted"
+                every { service.delete(1) } returns "Successfully deleted"
                 mockMvc.perform(delete("/todos/1"))
                     .andExpect(status().isOk)
                     .andExpect(content().string(containsString("Successfully")))
