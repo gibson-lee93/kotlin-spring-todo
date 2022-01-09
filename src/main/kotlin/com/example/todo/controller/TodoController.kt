@@ -3,6 +3,7 @@ package com.example.todo.controller
 import com.example.todo.dto.TodoDto
 import com.example.todo.entity.Todo
 import com.example.todo.service.TodoService
+import org.springframework.http.HttpStatus
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 
@@ -10,32 +11,32 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/todos")
 class TodoController(private val todoService: TodoService) {
 
-    //Dto에서 validation 사용하려면 @Validated 필수
     @PostMapping
-    fun createTodo(@RequestBody @Validated todoDto: TodoDto): Todo {
-        return todoService.createTodo(todoDto)
+    @ResponseStatus(HttpStatus.CREATED)
+    fun create(@RequestBody @Validated todoDto: TodoDto): Todo { //Dto에서 validation 사용하려면 @Validated 필수
+        return todoService.create(todoDto)
     }
 
     @GetMapping("/{id}")
-    fun getTodoById(@PathVariable(name = "id") id: Long): Todo {
-        return todoService.getTodoById(id)
+    fun detail(@PathVariable(name = "id") id: Long): Todo {
+        return todoService.detail(id)
     }
 
     @GetMapping
-    fun getAllTodos(): List<Todo> {
-        return todoService.getAllTodos()
+    fun list(): List<Todo> {
+        return todoService.list()
     }
 
     @PutMapping("/{id}")
-    fun updateTodo(
+    fun update(
         @PathVariable(name = "id") id: Long,
         @RequestBody @Validated todoDto: TodoDto
     ): Todo {
-        return todoService.updateTodo(id, todoDto)
+        return todoService.update(id, todoDto)
     }
 
     @DeleteMapping("/{id}")
-    fun deleteTodo(@PathVariable(name = "id") id: Long): String {
-        return todoService.deleteTodo(id)
+    fun delete(@PathVariable(name = "id") id: Long): String {
+        return todoService.delete(id)
     }
 }

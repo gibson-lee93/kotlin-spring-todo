@@ -9,7 +9,12 @@ class Todo(
     val id: Long,
 
     @Column(nullable = false)
-    var title: String,
+    var title: String?,
 
     var description: String? = null
-)
+) {
+    fun updateTodo(title: String?, description: String?) {
+        this.title = title ?: this.title
+        this.description = description ?: this.description
+    }
+}
