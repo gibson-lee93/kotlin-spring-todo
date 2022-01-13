@@ -23,6 +23,10 @@ class TodoService(
         }
     }
 
+    fun list(): List<Todo> {
+        return repository.findAll()
+    }
+
     fun update(id: Long, todo: Todo): Todo {
         val foundTodo = detail(id)
         foundTodo.set(todo)

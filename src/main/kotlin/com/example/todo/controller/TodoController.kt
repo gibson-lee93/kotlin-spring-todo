@@ -20,6 +20,11 @@ class TodoController(val service: TodoService) {
         return service.detail(id)
     }
 
+    @GetMapping
+    fun list(): List<Todo> {
+        return service.list()
+    }
+
     @PutMapping("/{id}")
     fun update(
         @PathVariable(name = "id") id: Long,

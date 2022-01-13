@@ -33,6 +33,7 @@ internal class TodoControllerTest : DescribeSpec() {
             every { service.detail(id = 1) } returns todo
             every { service.update(id = 1, todo = todo) } returns todo
             every { service.delete(id = 1) } returns "Todo successfully deleted"
+            every { service.list() } returns listOf(todo)
         }
 
         describe("Create") {
@@ -56,6 +57,14 @@ internal class TodoControllerTest : DescribeSpec() {
                         .andExpect(status().isOk)
                     verify(exactly = 1) { service.detail(id = 1) }
                 }
+            }
+        }
+
+        describe("List") {
+            it("responds with a list of todos") {
+                mockMvc.perform(get("/todos"))
+                    .andExpect(status().isOk)
+                verify(exactly = 1) { service.list() }
             }
         }
 

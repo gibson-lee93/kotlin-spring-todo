@@ -5,6 +5,7 @@ import com.example.todo.repository.TodoRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
@@ -53,6 +54,13 @@ internal class TodoServiceTest : DescribeSpec({
                 }
                 exception.message shouldBe "Todo does not exist"
             }
+        }
+    }
+
+    describe("list") {
+        it("returns list of todos") {
+            every { repository.findAll() } returns listOf(todo)
+            service.list() shouldContain todo
         }
     }
 
