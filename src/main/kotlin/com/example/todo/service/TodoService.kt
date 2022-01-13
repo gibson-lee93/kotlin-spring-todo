@@ -28,4 +28,10 @@ class TodoService(
         foundTodo.set(todo)
         return repository.save(foundTodo)
     }
+
+    fun delete(id: Long): String {
+        val todo = detail(id)
+        repository.delete(todo)
+        return "Todo successfully deleted"
+    }
 }

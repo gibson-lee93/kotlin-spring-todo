@@ -21,7 +21,7 @@ internal class TodoServiceTest : DescribeSpec({
         context("with a valid parameter") {
             it("returns a created todo") {
                 every { repository.save(todo) } returns todo
-                service.create(todo) shouldBe todo
+                service.create(todo = todo) shouldBe todo
                 // Todo: 테스트가 헐거움. 뭐를 더 확인해야 할까
             }
         }
@@ -41,7 +41,7 @@ internal class TodoServiceTest : DescribeSpec({
         context("with a existing id") {
             it("returns a todo") {
                 every { repository.findById(1).get() } returns todo
-                service.detail(1) shouldBe todo
+                service.detail(id = 1) shouldBe todo
             }
         }
 
@@ -49,7 +49,7 @@ internal class TodoServiceTest : DescribeSpec({
         context("with an non-existing id") {
             it("throws a not found exception") {
                 val exception = shouldThrow<NoSuchElementException> {
-                    service.detail(1)
+                    service.detail(id = 1)
                 }
                 exception.message shouldBe "Todo does not exist"
             }
@@ -61,7 +61,17 @@ internal class TodoServiceTest : DescribeSpec({
             it("returns a updated todo") {
                 every { repository.findById(1).get() } returns todo
                 every { repository.save(todo) } returns todo
-                service.update(1, todo) shouldBe todo
+                service.update(id = 1, todo = todo) shouldBe todo
+            }
+        }
+    }
+
+    describe("delete") {
+        context("with a valid id") {
+            it("returns a string when successfully deleted") {
+                every { repository.findById(1).get() } returns todo
+                every { repository.delete(todo) } returns Unit
+                service.delete(id = 1) shouldBe "Todo successfully deleted"
             }
         }
     }

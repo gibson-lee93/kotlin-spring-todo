@@ -7,12 +7,13 @@ import com.ninjasquad.springmockk.MockkBean
 import io.kotest.core.spec.style.DescribeSpec
 import io.mockk.every
 import io.mockk.verify
+import org.hamcrest.CoreMatchers.containsString
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 
 @WebMvcTest(TodoController::class)
 internal class TodoControllerTest : DescribeSpec() {
@@ -31,6 +32,7 @@ internal class TodoControllerTest : DescribeSpec() {
             every { service.create(todo = todo) } returns todo
             every { service.detail(id = 1) } returns todo
             every { service.update(id = 1, todo = todo) } returns todo
+            every { service.delete(id = 1) } returns "Todo successfully deleted"
         }
 
         describe("Create") {
@@ -68,6 +70,17 @@ internal class TodoControllerTest : DescribeSpec() {
                     )
                         .andExpect(status().isOk)
                     verify(exactly = 1) { service.update(id = 1, todo = todo) }
+                }
+            }
+        }
+
+        describe("Delete") {
+            context("with a valid id") {
+                it("responds with a string") {
+                    mockMvc.perform(delete("/todos/1"))
+                        .andExpect(status().isOk)
+                        .andExpect(content().string(containsString("successfully")))
+                    verify(exactly = 1) { service.delete(id = 1) }
                 }
             }
         }
