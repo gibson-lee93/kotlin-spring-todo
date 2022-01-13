@@ -14,4 +14,12 @@ class TodoService(
         }
         return repository.save(todo)
     }
+
+    fun detail(id: Long): Todo {
+        return try {
+            repository.findById(id).get()
+        } catch (e: NoSuchElementException) {
+            throw NoSuchElementException("Todo does not exist")
+        }
+    }
 }

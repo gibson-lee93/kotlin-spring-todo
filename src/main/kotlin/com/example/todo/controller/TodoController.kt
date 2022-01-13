@@ -14,4 +14,9 @@ class TodoController(val service: TodoService) {
     fun create(@RequestBody todo: Todo): Todo {
         return service.create(todo)
     }
+
+    @GetMapping("/{id}")
+    fun detail(@PathVariable(name = "id") id: Long): Todo {
+        return service.detail(id)
+    }
 }

@@ -15,9 +15,10 @@ internal class TodoServiceTest : DescribeSpec({
     @AnnotationSpec.BeforeEach // todo: 이렇게 해도 가능한가?
     val service = TodoService(repository)
 
+    val todo = Todo(title = "title", description = "description")
+
     describe("create") {
         context("with a valid parameter") {
-            val todo = Todo(title = "title", description = "description")
             it("returns a created todo") {
                 every { repository.save(todo) } returns todo
                 service.create(todo) shouldBe todo
@@ -26,12 +27,31 @@ internal class TodoServiceTest : DescribeSpec({
         }
 
         context("with a invalid parameter") {
-            val todo = Todo(description = "description")
+            val faultyTodo = Todo(description = "description")
             it("throws an illegal argument exception") {
                 val exception = shouldThrow<IllegalArgumentException> {
-                    service.create(todo)
+                    service.create(faultyTodo)
                 }
                 exception.message shouldBe "Title should not be empty"
+            }
+        }
+    }
+
+    describe("detail") {
+        context("with a existing id") {
+            it("returns a todo") {
+                every { repository.findById(1).get() } returns todo
+                service.detail(1) shouldBe todo
+            }
+        }
+
+        // Todo: 테스트가 통과하지 않는다. Exception은 잡는데 response가 internal server error로 나간다.
+        context("with an non-existing id") {
+            it("throws a not found exception") {
+                val exception = shouldThrow<NoSuchElementException> {
+                    service.detail(1)
+                }
+                exception.message shouldBe "Todo does not exist"
             }
         }
     }
