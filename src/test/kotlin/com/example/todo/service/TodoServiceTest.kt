@@ -55,4 +55,14 @@ internal class TodoServiceTest : DescribeSpec({
             }
         }
     }
+
+    describe("update") {
+        context("with a valid parameter") {
+            it("returns a updated todo") {
+                every { repository.findById(1).get() } returns todo
+                every { repository.save(todo) } returns todo
+                service.update(1, todo) shouldBe todo
+            }
+        }
+    }
 })
