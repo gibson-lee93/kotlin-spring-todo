@@ -28,12 +28,13 @@ internal class TodoControllerTest : DescribeSpec() {
     init {
         val todo = Todo(title = "title", description = "description")
         beforeEach {
-            every { service.create(todo) } returns todo
-            every { service.detail(1) } returns todo
+            every { service.create(todo = todo) } returns todo
+            every { service.detail(id = 1) } returns todo
+            every { service.update(id = 1, todo = todo) } returns todo
         }
 
         describe("Create") {
-            context("with a valid body") {
+            context("with a valid request body") {
                 val content = objectMapper.writeValueAsString(todo)
                 it("responds with a created todo") {
                     mockMvc.perform(
@@ -51,7 +52,22 @@ internal class TodoControllerTest : DescribeSpec() {
                 it("responds with a todo") {
                     mockMvc.perform(get("/todos/1"))
                         .andExpect(status().isOk)
-                    verify(exactly = 1) { service.detail(1) }
+                    verify(exactly = 1) { service.detail(id = 1) }
+                }
+            }
+        }
+
+        describe("Update") {
+            context("with a valid request body") {
+                val content = objectMapper.writeValueAsString(todo)
+                it("responds with a updated todo") {
+                    mockMvc.perform(
+                        put("/todos/1")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(content)
+                    )
+                        .andExpect(status().isOk)
+                    verify(exactly = 1) { service.update(id = 1, todo = todo) }
                 }
             }
         }

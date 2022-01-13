@@ -22,4 +22,10 @@ class TodoService(
             throw NoSuchElementException("Todo does not exist")
         }
     }
+
+    fun update(id: Long, todo: Todo): Todo {
+        val foundTodo = detail(id)
+        foundTodo.set(todo)
+        return repository.save(foundTodo)
+    }
 }

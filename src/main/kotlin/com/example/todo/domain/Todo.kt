@@ -12,4 +12,9 @@ data class Todo(
     var title: String? = null,
 
     var description: String? = null
-)
+) {
+    fun set(todo: Todo) {
+        this.title = todo.title ?: this.title
+        this.description = todo.description ?: this.description
+    }
+}
