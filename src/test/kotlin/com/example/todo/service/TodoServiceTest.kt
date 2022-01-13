@@ -1,72 +1,38 @@
 package com.example.todo.service
 
-import com.example.todo.dto.TodoDto
-import com.example.todo.entity.Todo
-import com.example.todo.exception.APIException
+import com.example.todo.domain.Todo
 import com.example.todo.repository.TodoRepository
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.core.spec.style.DescribeSpec
-import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
-import org.modelmapper.ModelMapper
-import org.springframework.http.HttpStatus
 
 internal class TodoServiceTest : DescribeSpec({
     val repository = mockk<TodoRepository>()
-    val mapper = mockk<ModelMapper>()
-    val service = TodoService(repository, mapper)
 
-    val todo : Todo = Todo(1, "title", "description")
-    val todoDto : TodoDto = TodoDto(1, "title", "description")
+    @AnnotationSpec.BeforeEach // todo: 이렇게 해도 가능한가?
+    val service = TodoService(repository)
 
-    beforeTest {
-        every { repository.findById(1).get() } returns todo
-    }
-
-    describe("Create") {
-        it("Returns a created todo") {
-            every { service.mapToEntity(todoDto) } returns todo
-            every { repository.save(todo) } returns todo
-            service.create(todoDto) shouldBe todo
-        }
-    }
-
-    describe("Detail") {
-        it("Returns a todo") {
-            service.detail(1) shouldBe todo
-        }
-
-        it("Throws a not found exception error") {
-            val exception = shouldThrow<APIException> {
-                every { repository.findById(1).get() } throws APIException(
-                    HttpStatus.NOT_FOUND,
-                    "Can't find todo with Id: 1")
-                service.detail(1)
+    describe("create") {
+        context("with a valid parameter") {
+            val todo = Todo(title = "title", description = "description")
+            it("returns a created todo") {
+                every { repository.save(todo) } returns todo
+                service.create(todo) shouldBe todo
+                // Todo: 테스트가 헐거움. 뭐를 더 확인해야 할까
             }
-            exception.message shouldBe "Can't find todo with Id: 1"
         }
-    }
 
-    describe("List") {
-        it("Returns a list of todo") {
-            every { repository.findAll() } returns listOf(todo)
-            service.list() shouldContain todo
-        }
-    }
-
-    describe("Update") {
-        it("Returns with updated todo") {
-            every { repository.save(todo) } returns todo
-            service.update(1, todoDto) shouldBe todo
-        }
-    }
-
-    describe("Delete") {
-        it("Returns a string when successfully deleted") {
-            every { repository.delete(todo) } returns Unit
-            service.delete(1) shouldBe "Successfully deleted"
+        context("with a invalid parameter") {
+            val todo = Todo(description = "description")
+            it("throws an illegal argument exception") {
+                val exception = shouldThrow<IllegalArgumentException> {
+                    service.create(todo)
+                }
+                exception.message shouldBe "Title should not be empty"
+            }
         }
     }
 })
