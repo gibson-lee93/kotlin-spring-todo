@@ -28,9 +28,13 @@ internal class TodoControllerTest : DescribeSpec() {
 
     init {
         val todo = Todo(title = "title", description = "description")
+        val faultyTodo = Todo(description = "description")
+
         beforeEach {
             every { service.create(todo = todo) } returns todo
+            every { service.create(todo = faultyTodo) } throws IllegalArgumentException()
             every { service.detail(id = 1) } returns todo
+            every { service.detail(id = 99) } throws NoSuchElementException()
             every { service.update(id = 1, todo = todo) } returns todo
             every { service.delete(id = 1) } returns "Todo successfully deleted"
             every { service.list() } returns listOf(todo)
@@ -48,6 +52,18 @@ internal class TodoControllerTest : DescribeSpec() {
                         .andExpect(status().isCreated)
                 }
             }
+
+            context("with an invalid request body") {
+                val faultyContent = objectMapper.writeValueAsString(faultyTodo)
+                it("responds with a 400 - bad request") {
+                    mockMvc.perform(
+                        post("/todos")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(faultyContent)
+                    )
+                        .andExpect(status().isBadRequest)
+                }
+            }
         }
 
         describe("Detail") {
@@ -56,6 +72,13 @@ internal class TodoControllerTest : DescribeSpec() {
                     mockMvc.perform(get("/todos/1"))
                         .andExpect(status().isOk)
                     verify(exactly = 1) { service.detail(id = 1) }
+                }
+            }
+
+            context("with a non-existing id") {
+                it("responds with a 404 - not found ") {
+                    mockMvc.perform(get("/todos/99"))
+                        .andExpect(status().isNotFound)
                 }
             }
         }
