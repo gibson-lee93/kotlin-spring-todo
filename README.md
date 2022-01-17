@@ -35,37 +35,6 @@ spring.jpa.hibernate.ddl-auto = update
 ```
 `spring.datasource.url`에는 `localhost` 뒤에 postgres의 post와 `/` 뒤에 database 이름을 작성  
 각 `spring.datasource.username`와 `spring.datasource.password`에는 유저네임과 비밀번호를 작성
-  
-  
-### Model Mapper dependency 추가 및 설정
-사용하는 이유: Todo 생성시 필요한 field들을 dto로 받고 알맞게 dto에서 todo entity 형식으로 바꾸기 위해
-`build.gradle.kts'에 Model Mapper dependency 추가
-```
-dependencies {
-  // ...(전략)...
-	implementation("org.modelmapper:modelmapper:2.4.4")
-  // ...
-}
-```
-@Bean으로 등록하기 위해 config 파일 작성
-``` kotlin
-@Configuration
-class ModelMapperConfig {
-
-    @Bean
-    fun modelMapper(): ModelMapper {
-        val modelMapper = ModelMapper()
-        // 필드 이름이 같은 것끼리 매칭
-        modelMapper.configuration.isFieldMatchingEnabled = true
-
-        // private 필드여도 접근 가능
-        modelMapper.configuration.fieldAccessLevel = org.modelmapper.config.Configuration.AccessLevel.PRIVATE
-
-        return modelMapper
-    }
-}
-```
-사용법은 TodoService에서 다룸
 
 ---
 
@@ -73,33 +42,23 @@ class ModelMapperConfig {
 ``` kotlin
 @Entity
 @Table(name = "todos")
-class Todo(
+data class Todo(
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    val id: Long,
+    val id: Long? = null,
 
     @Column(nullable = false)
-    var title: String,
-
-    var description: String? = null
-)
-```
-간단하게 title하고 description만 attribute으로 갖는다. Description만 null 값을 허용
-
----
-
-## `Todo` Dto 작성
-``` kotlin
-data class TodoDto(
-    val id: Long,
-
-    @field:Size(min = 4, message = "Todo title should have at least 4 characters")
     var title: String? = null,
 
-    val description: String? = null
-) {}
+    var description: String? = null
+) {
+    fun set(todo: Todo) {
+        this.title = todo.title ?: this.title
+        this.description = todo.description ?: this.description
+    }
+}
 ```
-Todo를 update 할 때 description만 수정할 경우가 있으니 title에 null 값을 허용  
-하지만 null이 아닐경우 문자열 최소 길이가 4 이여야 하며 아닐경우 위와 같은 메세지 출력
+간단하게 title하고 description만 attribute으로 갖는다. 처음 todo를 생성할 때 title을 null로 가져선 안 되기 때문에 service에서 exception을 내보내고  
+만들어진 todo를 update할 때에는 description 또는 title만 update 할 가능성이 있게 때문에 title과 description을 nullabe로 설정했다.
 
 ---
 
@@ -108,36 +67,54 @@ Todo를 update 할 때 description만 수정할 경우가 있으니 title에 nul
 ``` kotlin
 @RestController
 @RequestMapping("/todos")
-class TodoController(private val todoService: TodoService) {
+class TodoController(val service: TodoService) {
 
-    //Dto에서 validation 사용하려면 @Validated 필수
     @PostMapping
-    fun createTodo(@RequestBody @Validated todoDto: TodoDto): Todo {
-        return todoService.createTodo(todoDto)
+    @ResponseStatus(HttpStatus.CREATED)
+    fun create(@RequestBody todo: Todo): Todo {
+        return service.create(todo)
     }
 
     @GetMapping("/{id}")
-    fun getTodoById(@PathVariable(name = "id") id: Long): Todo {
-        return todoService.getTodoById(id)
+    fun detail(@PathVariable(name = "id") id: Long): Todo {
+        return service.detail(id)
     }
 
     @GetMapping
-    fun getAllTodos(): List<Todo> {
-        return todoService.getAllTodos()
+    fun list(): List<Todo> {
+        return service.list()
     }
 
     @PutMapping("/{id}")
-    fun updateTodo(
+    fun update(
         @PathVariable(name = "id") id: Long,
-        @RequestBody @Validated todoDto: TodoDto
+        @RequestBody todo: Todo
     ): Todo {
-        return todoService.updateTodo(id, todoDto)
+        return service.update(id, todo)
     }
 
     @DeleteMapping("/{id}")
-    fun deleteTodo(@PathVariable(name = "id") id: Long): String {
-        return todoService.deleteTodo(id)
+    fun delete(@PathVariable(name = "id") id: Long): String {
+        return service.delete(id)
     }
+
+    @ExceptionHandler(value = [NoSuchElementException::class])
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    fun noSuchElementException(e: NoSuchElementException) =
+        ExceptionResponse(
+            code = "NOT_FOUND",
+            message = e.message.toString(),
+            trace = e.stackTraceToString()
+        )
+
+    @ExceptionHandler(value = [IllegalArgumentException::class])
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    fun illegalArgumentException(e: IllegalArgumentException) =
+        ExceptionResponse(
+            code = "BAD_REQUEST",
+            message = e.message.toString(),
+            trace = e.stackTraceToString()
+        )
 }
 ```
 기본 CRUD REST API
@@ -146,99 +123,52 @@ class TodoController(private val todoService: TodoService) {
 ``` kotlin
 @Service
 class TodoService(
-    private val todoRepository: TodoRepository,
-    private val mapper: ModelMapper
+    private val repository: TodoRepository
 ) {
-    fun createTodo(todoDto: TodoDto): Todo {
+    fun create(todo: Todo): Todo {
+        if (todo.title == null) {
+            throw IllegalArgumentException("Title should not be empty")
+        }
+        return repository.save(todo)
+    }
+
+    fun detail(id: Long): Todo {
         return try {
-            todoRepository.save(mapToEntity(todoDto))
-        } catch(e: MethodArgumentNotValidException) {
-            throw APIException(HttpStatus.BAD_REQUEST, e.message)
+            repository.findById(id).get()
+        } catch (e: NoSuchElementException) {
+            throw NoSuchElementException("Todo does not exist")
         }
     }
 
-    fun getTodoById(id: Long): Todo {
-        return try {
-            todoRepository.findById(id).get()
-        } catch(e: NoSuchElementException) {
-            throw APIException(HttpStatus.NOT_FOUND, "Can't find todo with Id: $id")
-        }
+    fun list(): List<Todo> {
+        return repository.findAll()
     }
 
-    fun getAllTodos(): List<Todo> {
-        return todoRepository.findAll().toList()
+    fun update(id: Long, todo: Todo): Todo {
+        val foundTodo = detail(id)
+        foundTodo.set(todo)
+        return repository.save(foundTodo)
     }
 
-    fun updateTodo(id: Long, todoDto: TodoDto): Todo {
-        val todo = getTodoById(id)
-        todo.title = todoDto.title ?: todo.title
-        todo.description = todoDto.description ?: todo.description
-
-        return try {
-            todoRepository.save(todo)
-        } catch (e: Exception) {
-            throw APIException(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error")
-        }
-    }
-
-    fun deleteTodo(id: Long): String {
-        val todo = getTodoById(id)
-        try {
-            todoRepository.delete(todo)
-            return "Successfully deleted"
-        } catch (e: Exception) {
-            throw APIException(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error")
-        }
-    }
-
-    private fun mapToEntity(todoDto: TodoDto): Todo {
-        return mapper.map(todoDto, Todo::class.java)
+    fun delete(id: Long): String {
+        val todo = detail(id)
+        repository.delete(todo)
+        return "Todo successfully deleted"
     }
 }
 ```
-`createTodo`에서 `todoRepository.save(mapToEntity(todoDto))`통해 데이터베이스에 저장할 때 `.save()`는 Todo의 entity 타입을 매게변수로 받기 때문에 `mapToEntity` 함수에서 `model mapper`를 사용하여 `TodoDto`를 `Todo` entity로 매핑하여 `.save()`를 실행  
-<br/>
-`Todo`의 update나 delete는 먼저 parameter로 받은 id로 `getTodoById`를 사용하여 조회를 하고, 조회가 되지 않을 경우 `getTodoById`에서 에러 throw 하도록 구현
+`Todo`의 update나 delete는 먼저 parameter로 받은 id로 `deatil`를 사용하여 조회를 하고, 조회가 되지 않을 경우 `detail`에서 `NoSuchElementException`을 throw 하도록 구현
 <br/>
 
 ---
 
-## Custom Error Response 구현
-### ErrorResponse
+## Custom Exception Response 구현
+### ExcetpionResponse
 ``` kotlin
-class ErrorResponse(
-    //에러 코드
-    val status : Int? = null,
-    
-    //에러 메세지
-    val message : String? = null
+data class ExceptionResponse(
+    val code: String?,
+    val message: String?,
+    val trace: String?
 )
 ```
 
-### APIException
-``` kotlin
-class APIException(status: HttpStatus, message : String) : RuntimeException(message) {
-    val status = status
-}
-```
-
-### GlobalExceptionHandler
-``` kotlin
-@ControllerAdvice
-class GlobalExceptionHandler {
-    @ExceptionHandler
-    fun handleApiException(exc: APIException) : ResponseEntity<ErrorResponse> {
-        val errorResponse = ErrorResponse(exc.status.value(), exc.message)
-        return ResponseEntity(errorResponse, exc.status)
-    }
-}
-```
-에러가 발생했을 경우 `ErrorResponse`를 통해 에러의 상태 코드와 간단한 메시지를 return
-``` kotlin
-return try {
-  todoRepository.findById(id).get()
-} catch(e: NoSuchElementException) {
-  throw APIException(HttpStatus.NOT_FOUND, "Can't find todo with Id: $id")
-}
-```
-위와 같이 에러가 발생했을 경우 `todo service`에서 `throw APIException`에 첫번째 매개변수로 에러에 알맞은 HTTP status와 두번째 매게변수로 메시지 입력
